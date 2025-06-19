@@ -3,8 +3,9 @@ use crate::{
     parse::{self, Gallery},
 };
 use anyhow::Result;
+use rand::prelude::*;
 use std::{path::PathBuf, sync::Arc, time::Duration};
-use tokio::{io::AsyncWriteExt, task::JoinSet};
+use tokio::{io::AsyncWriteExt, task::JoinSet, time::sleep};
 
 pub async fn download_gallery(gallery: Gallery) -> Result<()> {
     let pb = PB.add(indicatif::ProgressBar::new(gallery.images.len() as u64));

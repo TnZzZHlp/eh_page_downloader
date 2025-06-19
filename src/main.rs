@@ -1,5 +1,6 @@
 use anyhow::{Ok, Result};
 use clap::Parser;
+use rand::prelude::*;
 use reqwest::Client;
 use reqwest::redirect::Policy;
 use std::sync::LazyLock;
@@ -64,7 +65,7 @@ async fn run(url: String) -> Result<()> {
 
     for gallery in &mut galleries {
         parse::parse_gallery(gallery).await?;
-        sleep(Duration::from_secs(1)).await;
+        sleep(Duration::from_millis(rand::rng().random_range(500..=1000))).await;
         pb.inc(1);
     }
 

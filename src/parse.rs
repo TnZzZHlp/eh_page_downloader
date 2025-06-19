@@ -1,7 +1,7 @@
-use std::time::Duration;
-
 use anyhow::Result;
+use rand::prelude::*;
 use reqwest::Url;
+use std::time::Duration;
 use tokio::time::sleep;
 
 use crate::{CLIENT, COOKIE, ORIGINAL, info};
@@ -103,10 +103,6 @@ pub async fn parse_gallery(gallery: &mut Gallery) -> Result<()> {
         let document = scraper::Html::parse_document(&html);
 
         for element in document.select(&scraper::Selector::parse(".gt200 > a").unwrap()) {
-            info!(
-                "Found image link: {}",
-                element.value().attr("href").unwrap_or("N/A")
-            );
             if let Some(href) = element.value().attr("href") {
                 gallery.images.push(href.to_string());
             }
@@ -131,6 +127,8 @@ pub async fn parse_gallery(gallery: &mut Gallery) -> Result<()> {
         } else {
             break;
         }
+
+        sleep(Duration::from_millis(rand::rng().random_range(500..=1000))).await;
     }
 
     Ok(())
