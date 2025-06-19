@@ -43,7 +43,6 @@ static ORIGINAL: LazyLock<bool> = LazyLock::new(|| Cli::parse().original);
 async fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    // Run the main logic of the application
     run(cli.url).await?;
 
     Ok(())

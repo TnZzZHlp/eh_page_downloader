@@ -1,5 +1,5 @@
 use crate::{
-    OUTPUT, PB, info,
+    OUTPUT, PB, error, info,
     parse::{self, Gallery},
 };
 use anyhow::Result;
@@ -20,7 +20,7 @@ pub async fn download_gallery(gallery: &Gallery) -> Result<()> {
             gallery.title.chars().take(7).collect::<String>(),
             index + 1
         ));
-        download_image(image_url, &gallery.title, index).await?;
+        let _ = download_image(image_url, &gallery.title, index).await;
     }
     pb.finish_and_clear();
     Ok(())
@@ -48,6 +48,11 @@ pub async fn download_image(image_url: &str, title: &str, index: usize) -> Resul
     let response = crate::CLIENT.get(&img_url).send().await?;
 
     if !response.status().is_success() {
+        error!(
+            "Failed to download image: {} - Status: {}",
+            img_url,
+            response.status()
+        );
         return Err(anyhow::anyhow!(
             "Failed to download image: {}",
             response.status()
