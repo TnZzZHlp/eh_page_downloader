@@ -26,6 +26,7 @@ pub async fn download_gallery(gallery: Gallery) -> Result<()> {
             }
         });
     }
+    tasks.join_all().await;
     pb.finish_and_clear();
     Ok(())
 }
