@@ -1,0 +1,62 @@
+use crate::{
+    OUTPUT, PB, info,
+    parse::{self, Gallery},
+};
+use anyhow::Result;
+use std::path::PathBuf;
+use tokio::io::AsyncWriteExt;
+
+pub async fn download_gallery(gallery: &Gallery) -> Result<()> {
+    let pb = PB.add(indicatif::ProgressBar::new(gallery.images.len() as u64));
+    pb.set_style(
+        indicatif::ProgressStyle::default_bar()
+            .template("[{elapsed_precise}] [{wide_bar:.cyan/blue}] [{pos}/{len}] {msg}")
+            .unwrap()
+            .progress_chars("=>-"),
+    );
+    for (index, image_url) in gallery.images.iter().enumerate() {
+        pb.set_message(format!(
+            "Downloading {} - {}",
+            gallery.title.chars().take(7).collect::<String>(),
+            index + 1
+        ));
+        download_image(image_url, &gallery.title, index).await?;
+    }
+    pb.finish_and_clear();
+    Ok(())
+}
+
+pub async fn download_image(image_url: &str, title: &str, index: usize) -> Result<()> {
+    let _permit = crate::SEM.acquire().await;
+    let img_url = parse::parse_real_image(image_url).await?;
+    let ext = img_url
+        .rsplit('.')
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("Failed to determine file extension"))?;
+
+    let output_path = PathBuf::from(format!("{}/{}/{}.{}", *OUTPUT, title, index, ext));
+
+    if output_path.exists() {
+        info!("File already exists: {}", output_path.display());
+        return Ok(());
+    }
+
+    if !output_path.parent().unwrap().exists() {
+        std::fs::create_dir_all(&output_path)?;
+    }
+
+    let response = crate::CLIENT.get(&img_url).send().await?;
+
+    if !response.status().is_success() {
+        return Err(anyhow::anyhow!(
+            "Failed to download image: {}",
+            response.status()
+        ));
+    }
+
+    let mut file = tokio::fs::File::create(&output_path).await?;
+    let content = response.bytes().await?;
+    file.write_all(&content).await?;
+
+    Ok(())
+}
