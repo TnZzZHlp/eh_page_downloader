@@ -136,34 +136,46 @@ pub async fn parse_real_image(image_page_url: &str) -> Result<String> {
     }
 
     let html = resp.text().await?;
-    let document = scraper::Html::parse_document(&html);
 
     if *ORIGINAL {
-        // find the original image page URL
-        let original_image_page_url = document
-            .select(&scraper::Selector::parse("div#i6 div:last-child a").unwrap())
-            .next()
-            .and_then(|el| el.value().attr("href"));
+        let mut original_image_url = String::new();
+        {
+            // find the original image page URL
+            let document = scraper::Html::parse_document(&html);
+            let original_image_page_url = document
+                .select(&scraper::Selector::parse("div#i6 div:last-child a").unwrap())
+                .next()
+                .and_then(|el| el.value().attr("href"));
 
-        if let Some(url) = original_image_page_url {
-            if let Ok(url) = Url::parse(url) {
-                // Check if the URL is a redirection
-                let response = CLIENT.get(url).header("Cookie", &*COOKIE).send().await?;
+            if let Some(url) = original_image_page_url {
+                if let Ok(url) = Url::parse(url) {
+                    original_image_url = url.to_string();
+                }
+            }
+        }
 
-                if response.status().is_redirection() {
-                    let redirect_url = response
-                        .headers()
-                        .get("Location")
-                        .and_then(|h| h.to_str().ok());
-                    if let Some(redirect_url) = redirect_url {
-                        return Ok(redirect_url.to_string());
-                    }
+        // Check if the URL is a redirection
+        if !original_image_url.is_empty() {
+            let response = CLIENT
+                .get(original_image_url)
+                .header("Cookie", &*COOKIE)
+                .send()
+                .await?;
+
+            if response.status().is_redirection() {
+                let redirect_url = response
+                    .headers()
+                    .get("Location")
+                    .and_then(|h| h.to_str().ok());
+                if let Some(redirect_url) = redirect_url {
+                    return Ok(redirect_url.to_string());
                 }
             }
         }
     }
 
     // find the real image URL
+    let document = scraper::Html::parse_document(&html);
     if let Some(img_element) = document
         .select(&scraper::Selector::parse("#img").unwrap())
         .next()

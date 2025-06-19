@@ -3,6 +3,7 @@ use clap::Parser;
 use reqwest::Client;
 use reqwest::redirect::Policy;
 use std::sync::LazyLock;
+use std::time::Duration;
 
 mod download;
 mod parse;
@@ -21,7 +22,7 @@ struct Cli {
     #[clap(short, long, default_value = "output")]
     output: String,
 
-    #[clap(short, long, default_value = "false")]
+    #[clap(long, default_value = "true")]
     original: bool,
 }
 
@@ -52,6 +53,7 @@ async fn run(url: String) -> Result<()> {
     let mut galleries = parse::parse_list(&url).await?;
 
     let pb = PB.add(indicatif::ProgressBar::new(galleries.len() as u64));
+    pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_style(
         indicatif::ProgressStyle::default_bar()
             .template("[{elapsed_precise}] [{wide_bar:.cyan/blue}] [{pos}/{len}] {msg}")
@@ -65,9 +67,9 @@ async fn run(url: String) -> Result<()> {
     }
 
     pb.finish_with_message("All galleries parsed");
-    info!("Starting downloads...");
 
-    for gallery in &galleries {
+    info!("Starting downloads...");
+    for gallery in galleries {
         download::download_gallery(gallery).await?;
     }
 
