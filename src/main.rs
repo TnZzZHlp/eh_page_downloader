@@ -70,6 +70,7 @@ async fn run(url: String) -> Result<()> {
 
     info!("Starting downloads...");
     for gallery in galleries {
+        info!("Downloading gallery: {:?}", gallery.images);
         download::download_gallery(gallery).await?;
     }
 

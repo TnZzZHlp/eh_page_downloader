@@ -96,7 +96,7 @@ pub async fn parse_gallery(gallery: &mut Gallery) -> Result<()> {
         let html = resp.text().await?;
         let document = scraper::Html::parse_document(&html);
 
-        for element in document.select(&scraper::Selector::parse(".gt200 > a").unwrap()) {
+        for element in document.select(&scraper::Selector::parse("#gt200 > a").unwrap()) {
             if let Some(src) = element.value().attr("href") {
                 gallery.images.push(src.to_string());
             }
