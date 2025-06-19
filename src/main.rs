@@ -4,6 +4,7 @@ use reqwest::Client;
 use reqwest::redirect::Policy;
 use std::sync::LazyLock;
 use std::time::Duration;
+use tokio::time::sleep;
 
 mod download;
 mod parse;
@@ -63,6 +64,7 @@ async fn run(url: String) -> Result<()> {
 
     for gallery in &mut galleries {
         parse::parse_gallery(gallery).await?;
+        sleep(Duration::from_secs(1)).await;
         pb.inc(1);
     }
 
