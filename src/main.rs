@@ -24,7 +24,7 @@ struct Cli {
     #[clap(short, long, default_value = "output")]
     output: String,
 
-    #[clap(long, default_value = "true")]
+    #[clap(long, default_value = "false")]
     original: bool,
 }
 
