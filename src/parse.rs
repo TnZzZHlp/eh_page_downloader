@@ -1,5 +1,8 @@
+use std::time::Duration;
+
 use anyhow::Result;
 use reqwest::Url;
+use tokio::time::sleep;
 
 use crate::{CLIENT, COOKIE, ORIGINAL, info};
 
@@ -46,7 +49,7 @@ pub async fn parse_list(url: &str) -> Result<Vec<Gallery>> {
                 .to_owned();
 
             let url = element
-                .select(&scraper::Selector::parse("div a").unwrap())
+                .select(&scraper::Selector::parse(".gl2e > div > a").unwrap())
                 .next()
                 .unwrap()
                 .value()
@@ -71,6 +74,8 @@ pub async fn parse_list(url: &str) -> Result<Vec<Gallery>> {
                 break;
             }
         }
+
+        sleep(Duration::from_millis(500)).await;
     }
 
     Ok(galleries)
@@ -82,10 +87,11 @@ pub async fn parse_gallery(gallery: &mut Gallery) -> Result<()> {
     let mut cur_url = gallery.url.clone();
     loop {
         let resp = CLIENT
-            .get(cur_url)
+            .get(&cur_url)
             .header("Cookie", &*COOKIE)
             .send()
             .await?;
+
         if !resp.status().is_success() {
             return Err(anyhow::anyhow!(
                 "Failed to fetch the gallery page: {}",
@@ -96,9 +102,13 @@ pub async fn parse_gallery(gallery: &mut Gallery) -> Result<()> {
         let html = resp.text().await?;
         let document = scraper::Html::parse_document(&html);
 
-        for element in document.select(&scraper::Selector::parse("#gt200 > a").unwrap()) {
-            if let Some(src) = element.value().attr("href") {
-                gallery.images.push(src.to_string());
+        for element in document.select(&scraper::Selector::parse(".gt200 > a").unwrap()) {
+            info!(
+                "Found image link: {}",
+                element.value().attr("href").unwrap_or("N/A")
+            );
+            if let Some(href) = element.value().attr("href") {
+                gallery.images.push(href.to_string());
             }
         }
 
@@ -110,7 +120,11 @@ pub async fn parse_gallery(gallery: &mut Gallery) -> Result<()> {
             .next()
         {
             if let Some(href) = next_page.value().attr("href") {
-                cur_url = href.to_string();
+                if href != cur_url {
+                    cur_url = href.to_string();
+                } else {
+                    break;
+                }
             } else {
                 break;
             }
