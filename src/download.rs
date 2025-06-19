@@ -1,5 +1,5 @@
 use crate::{
-    OUTPUT, PB, error, info,
+    CLIENT, OUTPUT, PB, error, info,
     parse::{self, Gallery},
 };
 use anyhow::Result;
@@ -47,10 +47,10 @@ pub async fn download_image(image_url: &str, title: &str, index: usize) -> Resul
     }
 
     if !output_path.parent().unwrap().exists() {
-        std::fs::create_dir_all(&output_path)?;
+        std::fs::create_dir_all(output_path.parent().unwrap())?;
     }
 
-    let response = crate::CLIENT.get(&img_url).send().await?;
+    let response = CLIENT.get(&img_url).send().await?;
 
     if !response.status().is_success() {
         error!(
