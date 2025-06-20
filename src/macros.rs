@@ -19,3 +19,14 @@ macro_rules! error {
         let _ = $crate::PB.println(&msg);
     }};
 }
+
+#[macro_export]
+macro_rules! warn {
+    ($($arg:tt)+) => {{
+        let ts = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
+        let level = "\x1b[33mWARN\x1b[0m";
+        let body = format!($($arg)+);
+        let msg = format!("{} [{}] {}", ts, level, body);
+        let _ = $crate::PB.println(&msg);
+    }};
+}

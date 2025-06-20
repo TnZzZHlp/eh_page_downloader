@@ -3,7 +3,7 @@ use std::time::Duration;
 use regex::Regex;
 use tokio::time::sleep;
 
-use crate::{CLIENT, COOKIE, error};
+use crate::{CLIENT, COOKIE, error, warn};
 
 async fn check() {
     let html = CLIENT
@@ -26,6 +26,10 @@ async fn check() {
     if let Some(caps) = re.captures(&html) {
         let minutes: u64 = caps[1].parse().unwrap();
         let seconds: u64 = caps[2].parse().unwrap();
+        warn!(
+            "IP temporarily banned for {} minutes and {} seconds",
+            minutes, seconds
+        );
         sleep(Duration::from_secs(minutes * 60 + seconds)).await;
     }
 }
