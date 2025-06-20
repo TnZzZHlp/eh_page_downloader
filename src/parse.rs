@@ -19,6 +19,7 @@ pub async fn parse_list(url: &str) -> Result<Vec<Gallery>> {
 
     loop {
         info!("Fetching page: {}", cur_page);
+        crate::utils::check().await;
         let resp = CLIENT
             .get(&cur_page)
             .header("Cookie", &*COOKIE)
@@ -86,6 +87,7 @@ pub async fn parse_gallery(gallery: &mut Gallery) -> Result<()> {
     // find image links
     let mut cur_url = gallery.url.clone();
     loop {
+        crate::utils::check().await;
         let resp = CLIENT
             .get(&cur_url)
             .header("Cookie", &*COOKIE)
@@ -135,6 +137,7 @@ pub async fn parse_gallery(gallery: &mut Gallery) -> Result<()> {
 }
 
 pub async fn parse_real_image(image_page_url: &str) -> Result<String> {
+    crate::utils::check().await;
     let resp = CLIENT
         .get(image_page_url)
         .header("Cookie", &*COOKIE)
@@ -168,6 +171,7 @@ pub async fn parse_real_image(image_page_url: &str) -> Result<String> {
 
         // Check if the URL is a redirection
         if !original_image_url.is_empty() {
+            crate::utils::check().await;
             let response = CLIENT
                 .get(original_image_url)
                 .header("Cookie", &*COOKIE)

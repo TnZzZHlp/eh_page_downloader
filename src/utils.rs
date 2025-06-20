@@ -3,9 +3,9 @@ use std::time::Duration;
 use regex::Regex;
 use tokio::time::sleep;
 
-use crate::{CLIENT, COOKIE, error, warn};
+use crate::{CLIENT, COOKIE, warn};
 
-async fn check() {
+pub async fn check() {
     let html = CLIENT
         .get("https://exhentai.org")
         .header("Cookie", &*COOKIE)
