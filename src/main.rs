@@ -3,6 +3,9 @@ use clap::Parser;
 use rand::prelude::*;
 use reqwest::Client;
 use reqwest::redirect::Policy;
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_retry::RetryTransientMiddleware;
+use reqwest_retry::policies::ExponentialBackoff;
 use std::sync::LazyLock;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -28,12 +31,15 @@ struct Cli {
     original: bool,
 }
 
-static CLIENT: LazyLock<Client> = LazyLock::new(|| {
-    Client::builder()
+static CLIENT: LazyLock<ClientWithMiddleware> = LazyLock::new(|| {
+    ClientBuilder::new(Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0")
         .redirect(Policy::none())
         .build()
-        .expect("Failed to create HTTP client")
+        .expect("Failed to create HTTP client"))
+        // Retry failed requests.
+        .with(RetryTransientMiddleware::new_with_policy(ExponentialBackoff::builder().build_with_max_retries(3)))
+        .build()
 });
 static COOKIE: LazyLock<String> = LazyLock::new(|| Cli::parse().cookie);
 static SEM: LazyLock<tokio::sync::Semaphore> =
