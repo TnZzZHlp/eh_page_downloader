@@ -1,14 +1,31 @@
+use std::time::Duration;
+
+use regex::Regex;
+use tokio::time::sleep;
+
 use crate::{CLIENT, COOKIE, error};
 
 async fn check() {
-    let resp = CLIENT
-        .get("https://exhentai.org/?f_search=cos%3A%22ringo+mitsuki%24%22+")
+    let html = CLIENT
+        .get("https://exhentai.org")
         .header("Cookie", &*COOKIE)
         .send()
         .await
-        .expect("Failed to send request");
+        .expect("Failed to send request")
+        .text()
+        .await
+        .expect("Failed to read response text");
 
-    if !resp.status().is_success() {
-        error!("Failed to connect to the server: {}", resp.status());
+    if !html
+        .contains("This IP address has been temporarily banned due to an excessive request rate")
+    {
+        return;
+    }
+
+    let re = Regex::new(r"(\d+)\s*minutes?\s*and\s*(\d+)\s*seconds?").unwrap();
+    if let Some(caps) = re.captures(&html) {
+        let minutes: u64 = caps[1].parse().unwrap();
+        let seconds: u64 = caps[2].parse().unwrap();
+        sleep(Duration::from_secs(minutes * 60 + seconds)).await;
     }
 }

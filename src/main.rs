@@ -19,7 +19,7 @@ mod utils;
 struct Cli {
     url: String,
 
-    #[clap(long, default_value = "1")]
+    #[clap(long, default_value = "3")]
     concurrency: usize,
 
     #[clap(short, long)]
