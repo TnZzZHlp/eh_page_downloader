@@ -7,7 +7,7 @@ use std::{path::PathBuf, sync::Arc, time::Duration};
 use tokio::{io::AsyncWriteExt, task::JoinSet};
 
 pub async fn download_gallery(gallery: Gallery) -> Result<()> {
-    let pb = PB.add(indicatif::ProgressBar::new(gallery.images.len() as u64));
+    let pb = Arc::new(PB.add(indicatif::ProgressBar::new(gallery.images.len() as u64)));
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_style(
         indicatif::ProgressStyle::default_bar()
@@ -20,10 +20,12 @@ pub async fn download_gallery(gallery: Gallery) -> Result<()> {
     let title = Arc::new(gallery.title);
     for (index, image_url) in gallery.images.into_iter().enumerate() {
         let title = Arc::clone(&title);
+        let pb = Arc::clone(&pb);
         tasks.spawn(async move {
             if let Err(e) = download_image(&image_url, &title, index).await {
                 error!("Failed to download image {}: {}", index + 1, e);
             }
+            pb.inc(1);
         });
     }
     tasks.join_all().await;
