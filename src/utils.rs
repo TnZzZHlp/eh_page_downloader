@@ -1,21 +1,14 @@
-#[macro_export]
-macro_rules! info {
-    ($($arg:tt)+) => {{
-        let ts = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
-        let level = "\x1b[34mINFO\x1b[0m";
-        let body = format!($($arg)+);
-        let msg = format!("{} [{}] {}", ts, level, body);
-        let _ = $crate::PB.println(&msg);
-    }};
-}
+use crate::{CLIENT, COOKIE, error};
 
-#[macro_export]
-macro_rules! error {
-    ($($arg:tt)+) => {{
-        let ts = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
-        let level = "\x1b[31mERROR\x1b[0m";
-        let body = format!($($arg)+);
-        let msg = format!("{} [{}] {}", ts, level, body);
-        let _ = $crate::PB.println(&msg);
-    }};
+async fn check() {
+    let resp = CLIENT
+        .get("https://exhentai.org/?f_search=cos%3A%22ringo+mitsuki%24%22+")
+        .header("Cookie", &*COOKIE)
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    if !resp.status().is_success() {
+        error!("Failed to connect to the server: {}", resp.status());
+    }
 }

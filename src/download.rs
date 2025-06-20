@@ -18,6 +18,7 @@ pub async fn download_gallery(gallery: Gallery) -> Result<()> {
 
     let mut tasks = JoinSet::new();
     let title = Arc::new(gallery.title);
+    info!("Downloading gallery: {}", title);
     for (index, image_url) in gallery.images.into_iter().enumerate() {
         let title = Arc::clone(&title);
         let pb = Arc::clone(&pb);

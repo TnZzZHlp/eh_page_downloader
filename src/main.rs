@@ -11,6 +11,7 @@ use std::time::Duration;
 use tokio::time::sleep;
 
 mod download;
+mod macros;
 mod parse;
 mod utils;
 
