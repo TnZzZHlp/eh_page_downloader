@@ -22,8 +22,20 @@ pub async fn check() {
         return;
     }
 
-    let re = Regex::new(r"(\d+)\s*minutes?\s*and\s*(\d+)\s*seconds?").unwrap();
-    if let Some(caps) = re.captures(&html) {
+    let mut re = Regex::new(r"(\d+)\s*minutes?\s*and\s*(\d+)\s*seconds?").unwrap();
+    if html.contains("hours") {
+        re = Regex::new(r"(\d+)\s*hours?\s*and\s*(\d+)\s*minutes?").unwrap();
+
+        if let Some(caps) = re.captures(&html) {
+            let hours: u64 = caps[1].parse().unwrap();
+            let minutes: u64 = caps[2].parse().unwrap();
+            warn!(
+                "IP temporarily banned for {} hours and {} minutes",
+                hours, minutes
+            );
+            sleep(Duration::from_secs(hours * 3600 + minutes * 60)).await;
+        }
+    } else if let Some(caps) = re.captures(&html) {
         let minutes: u64 = caps[1].parse().unwrap();
         let seconds: u64 = caps[2].parse().unwrap();
         warn!(
