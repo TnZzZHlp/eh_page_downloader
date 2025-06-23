@@ -1,25 +1,25 @@
-use std::time::Duration;
-
 use regex::Regex;
+use reqwest::header::HeaderMap;
+use std::time::Duration;
 use tokio::time::sleep;
 
 use crate::{ARGS, CLIENT, warn};
 
-pub async fn check() {
-    let html = CLIENT
-        .get("https://exhentai.org")
+pub async fn check(url: &str) -> (String, HeaderMap) {
+    let response = CLIENT
+        .get(url)
         .header("Cookie", &ARGS.cookie)
         .send()
         .await
-        .expect("Failed to send request")
-        .text()
-        .await
-        .expect("Failed to read response text");
+        .expect("Failed to send request");
+
+    let headers = response.headers().clone();
+    let html = response.text().await.expect("Failed to read response text");
 
     if !html
         .contains("This IP address has been temporarily banned due to an excessive request rate")
     {
-        return;
+        return (html, headers);
     }
 
     let mut re = Regex::new(r"(\d+)\s*minutes?\s*and\s*(\d+)\s*seconds?").unwrap();
@@ -44,4 +44,16 @@ pub async fn check() {
         );
         sleep(Duration::from_secs(minutes * 60 + seconds)).await;
     }
+
+    let response = CLIENT
+        .get(url)
+        .header("Cookie", &ARGS.cookie)
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    let headers = response.headers().clone();
+    let html = response.text().await.expect("Failed to read response text");
+
+    (html, headers)
 }

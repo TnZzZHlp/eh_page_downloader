@@ -4,6 +4,7 @@ use reqwest::Url;
 use std::time::Duration;
 use tokio::time::sleep;
 
+use crate::utils::check;
 use crate::{ARGS, CLIENT, info};
 
 #[derive(Debug, Clone)]
@@ -19,20 +20,8 @@ pub async fn parse_list(url: &str) -> Result<Vec<Gallery>> {
 
     loop {
         info!("Fetching page: {}", cur_page);
-        crate::utils::check().await;
-        let resp = CLIENT
-            .get(&cur_page)
-            .header("Cookie", &ARGS.cookie)
-            .send()
-            .await?;
-        if !resp.status().is_success() {
-            return Err(anyhow::anyhow!(
-                "Failed to fetch the page: {}",
-                resp.status()
-            ));
-        }
+        let (html, _) = check(&cur_page).await;
 
-        let html = resp.text().await?;
         let document = scraper::Html::parse_document(&html);
 
         // find gallery items
@@ -87,21 +76,8 @@ pub async fn parse_gallery(gallery: &mut Gallery) -> Result<()> {
     // find image links
     let mut cur_url = gallery.url.clone();
     loop {
-        crate::utils::check().await;
-        let resp = CLIENT
-            .get(&cur_url)
-            .header("Cookie", &ARGS.cookie)
-            .send()
-            .await?;
+        let (html, _) = check(&cur_url).await;
 
-        if !resp.status().is_success() {
-            return Err(anyhow::anyhow!(
-                "Failed to fetch the gallery page: {}",
-                resp.status()
-            ));
-        }
-
-        let html = resp.text().await?;
         let document = scraper::Html::parse_document(&html);
 
         for element in document.select(&scraper::Selector::parse(".gt200 > a").unwrap()) {
@@ -137,20 +113,7 @@ pub async fn parse_gallery(gallery: &mut Gallery) -> Result<()> {
 }
 
 pub async fn parse_real_image(image_page_url: &str) -> Result<String> {
-    crate::utils::check().await;
-    let resp = CLIENT
-        .get(image_page_url)
-        .header("Cookie", &ARGS.cookie)
-        .send()
-        .await?;
-    if !resp.status().is_success() {
-        return Err(anyhow::anyhow!(
-            "Failed to fetch the image page: {}",
-            resp.status()
-        ));
-    }
-
-    let html = resp.text().await?;
+    let (html, _) = check(image_page_url).await;
 
     if ARGS.original {
         let mut original_image_url = String::new();
@@ -171,21 +134,13 @@ pub async fn parse_real_image(image_page_url: &str) -> Result<String> {
 
         // Check if the URL is a redirection
         if !original_image_url.is_empty() {
-            crate::utils::check().await;
-            let response = CLIENT
-                .get(original_image_url)
-                .header("Cookie", &ARGS.cookie)
-                .send()
-                .await?;
+            let (_, response_headers) = crate::utils::check(&original_image_url).await;
 
-            if response.status().is_redirection() {
-                let redirect_url = response
-                    .headers()
-                    .get("Location")
-                    .and_then(|h| h.to_str().ok());
-                if let Some(redirect_url) = redirect_url {
-                    return Ok(redirect_url.to_string());
-                }
+            let redirect_url = response_headers
+                .get("Location")
+                .and_then(|h| h.to_str().ok());
+            if let Some(redirect_url) = redirect_url {
+                return Ok(redirect_url.to_string());
             }
         }
     }

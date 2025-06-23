@@ -46,7 +46,6 @@ pub async fn download_image(image_url: &str, title: &str, index: usize) -> Resul
         std::fs::create_dir_all(output_path.parent().unwrap())?;
     }
 
-    crate::utils::check().await;
     let response = CLIENT.get(&img_url).send().await?;
 
     if !response.status().is_success() {
