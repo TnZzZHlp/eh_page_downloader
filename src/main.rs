@@ -61,6 +61,7 @@ async fn run(url: String) -> Result<()> {
     let mut galleries = parse::parse_list(&url).await?;
 
     let pb = new_progress_bar(galleries.len() as u64);
+    pb.set_message("Parsing galleries...");
 
     for gallery in &mut galleries {
         parse::parse_gallery(gallery).await?;
