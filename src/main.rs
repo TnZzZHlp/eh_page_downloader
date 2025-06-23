@@ -42,12 +42,10 @@ static CLIENT: LazyLock<ClientWithMiddleware> = LazyLock::new(|| {
         .with(RetryTransientMiddleware::new_with_policy(ExponentialBackoff::builder().build_with_max_retries(3)))
         .build()
 });
-static COOKIE: LazyLock<String> = LazyLock::new(|| Cli::parse().cookie);
+static ARGS: LazyLock<Cli> = LazyLock::new(|| Cli::parse());
 static SEM: LazyLock<tokio::sync::Semaphore> =
-    LazyLock::new(|| tokio::sync::Semaphore::new(Cli::parse().concurrency));
-static OUTPUT: LazyLock<String> = LazyLock::new(|| Cli::parse().output);
+    LazyLock::new(|| tokio::sync::Semaphore::new(ARGS.concurrency));
 static PB: LazyLock<indicatif::MultiProgress> = LazyLock::new(indicatif::MultiProgress::new);
-static ORIGINAL: LazyLock<bool> = LazyLock::new(|| Cli::parse().original);
 
 #[tokio::main]
 async fn main() -> Result<()> {

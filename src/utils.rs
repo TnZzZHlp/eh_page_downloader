@@ -3,12 +3,12 @@ use std::time::Duration;
 use regex::Regex;
 use tokio::time::sleep;
 
-use crate::{CLIENT, COOKIE, warn};
+use crate::{ARGS, CLIENT, warn};
 
 pub async fn check() {
     let html = CLIENT
         .get("https://exhentai.org")
-        .header("Cookie", &*COOKIE)
+        .header("Cookie", &ARGS.cookie)
         .send()
         .await
         .expect("Failed to send request")

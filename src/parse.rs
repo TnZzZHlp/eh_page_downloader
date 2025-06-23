@@ -4,7 +4,7 @@ use reqwest::Url;
 use std::time::Duration;
 use tokio::time::sleep;
 
-use crate::{CLIENT, COOKIE, ORIGINAL, info};
+use crate::{ARGS, CLIENT, info};
 
 #[derive(Debug, Clone)]
 pub struct Gallery {
@@ -22,7 +22,7 @@ pub async fn parse_list(url: &str) -> Result<Vec<Gallery>> {
         crate::utils::check().await;
         let resp = CLIENT
             .get(&cur_page)
-            .header("Cookie", &*COOKIE)
+            .header("Cookie", &ARGS.cookie)
             .send()
             .await?;
         if !resp.status().is_success() {
@@ -90,7 +90,7 @@ pub async fn parse_gallery(gallery: &mut Gallery) -> Result<()> {
         crate::utils::check().await;
         let resp = CLIENT
             .get(&cur_url)
-            .header("Cookie", &*COOKIE)
+            .header("Cookie", &ARGS.cookie)
             .send()
             .await?;
 
@@ -140,7 +140,7 @@ pub async fn parse_real_image(image_page_url: &str) -> Result<String> {
     crate::utils::check().await;
     let resp = CLIENT
         .get(image_page_url)
-        .header("Cookie", &*COOKIE)
+        .header("Cookie", &ARGS.cookie)
         .send()
         .await?;
     if !resp.status().is_success() {
@@ -152,7 +152,7 @@ pub async fn parse_real_image(image_page_url: &str) -> Result<String> {
 
     let html = resp.text().await?;
 
-    if *ORIGINAL {
+    if ARGS.original {
         let mut original_image_url = String::new();
         {
             // find the original image page URL
@@ -174,7 +174,7 @@ pub async fn parse_real_image(image_page_url: &str) -> Result<String> {
             crate::utils::check().await;
             let response = CLIENT
                 .get(original_image_url)
-                .header("Cookie", &*COOKIE)
+                .header("Cookie", &ARGS.cookie)
                 .send()
                 .await?;
 

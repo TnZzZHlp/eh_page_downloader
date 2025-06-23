@@ -1,5 +1,5 @@
 use crate::{
-    CLIENT, OUTPUT, PB, error, info,
+    ARGS, CLIENT, PB, error, info,
     parse::{self, Gallery},
 };
 use anyhow::Result;
@@ -42,7 +42,7 @@ pub async fn download_image(image_url: &str, title: &str, index: usize) -> Resul
         .next()
         .ok_or_else(|| anyhow::anyhow!("Failed to determine file extension"))?;
 
-    let output_path = PathBuf::from(format!("{}/{}/{}.{}", *OUTPUT, title, index, ext));
+    let output_path = PathBuf::from(format!("{}/{}/{}.{}", ARGS.output, title, index, ext));
 
     if output_path.exists() {
         info!("File already exists: {}", output_path.display());
