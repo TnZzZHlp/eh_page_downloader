@@ -1,5 +1,6 @@
 use anyhow::{Ok, Result};
 use clap::Parser;
+use indicatif::ProgressBar;
 use rand::prelude::*;
 use reqwest::Client;
 use reqwest::redirect::Policy;
@@ -42,7 +43,7 @@ static CLIENT: LazyLock<ClientWithMiddleware> = LazyLock::new(|| {
         .with(RetryTransientMiddleware::new_with_policy(ExponentialBackoff::builder().build_with_max_retries(3)))
         .build()
 });
-static ARGS: LazyLock<Cli> = LazyLock::new(|| Cli::parse());
+static ARGS: LazyLock<Cli> = LazyLock::new(Cli::parse);
 static SEM: LazyLock<tokio::sync::Semaphore> =
     LazyLock::new(|| tokio::sync::Semaphore::new(ARGS.concurrency));
 static PB: LazyLock<indicatif::MultiProgress> = LazyLock::new(indicatif::MultiProgress::new);
@@ -59,7 +60,28 @@ async fn main() -> Result<()> {
 async fn run(url: String) -> Result<()> {
     let mut galleries = parse::parse_list(&url).await?;
 
-    let pb = PB.add(indicatif::ProgressBar::new(galleries.len() as u64));
+    let pb = new_progress_bar(galleries.len() as u64);
+
+    for gallery in &mut galleries {
+        parse::parse_gallery(gallery).await?;
+        sleep(Duration::from_millis(rand::rng().random_range(500..=1000))).await;
+        pb.inc(1);
+    }
+    pb.finish_with_message("All galleries parsed");
+
+    info!("Starting downloads...");
+    let pb = new_progress_bar(galleries.len() as u64);
+    for gallery in galleries {
+        download::download_gallery(gallery).await?;
+        pb.inc(1);
+    }
+    pb.finish_with_message("All downloads completed");
+
+    Ok(())
+}
+
+fn new_progress_bar(len: u64) -> ProgressBar {
+    let pb = PB.add(indicatif::ProgressBar::new(len));
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_style(
         indicatif::ProgressStyle::default_bar()
@@ -67,19 +89,5 @@ async fn run(url: String) -> Result<()> {
             .unwrap()
             .progress_chars("=>-"),
     );
-
-    for gallery in &mut galleries {
-        parse::parse_gallery(gallery).await?;
-        sleep(Duration::from_millis(rand::rng().random_range(500..=1000))).await;
-        pb.inc(1);
-    }
-
-    pb.finish_with_message("All galleries parsed");
-
-    info!("Starting downloads...");
-    for gallery in galleries {
-        download::download_gallery(gallery).await?;
-    }
-
-    Ok(())
+    pb
 }

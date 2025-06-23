@@ -1,20 +1,13 @@
 use crate::{
-    ARGS, CLIENT, PB, error, info,
+    ARGS, CLIENT, PB, error, info, new_progress_bar,
     parse::{self, Gallery},
 };
 use anyhow::Result;
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::{path::PathBuf, sync::Arc};
 use tokio::{io::AsyncWriteExt, task::JoinSet};
 
 pub async fn download_gallery(gallery: Gallery) -> Result<()> {
-    let pb = Arc::new(PB.add(indicatif::ProgressBar::new(gallery.images.len() as u64)));
-    pb.enable_steady_tick(Duration::from_millis(100));
-    pb.set_style(
-        indicatif::ProgressStyle::default_bar()
-            .template("[{elapsed_precise}] [{wide_bar:.cyan/blue}] [{pos}/{len}] {msg}")
-            .unwrap()
-            .progress_chars("=>-"),
-    );
+    let pb = Arc::new(PB.add(new_progress_bar(gallery.images.len() as u64)));
 
     let mut tasks = JoinSet::new();
     let title = Arc::new(gallery.title);
